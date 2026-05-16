@@ -42,8 +42,12 @@ function matchesPeriod(
     return year >= 2020;
   }
 
-  if (preferences.period === "classic") {
+  if (preferences.period === "classic" && item.type === "movie") {
     return year <= 2010;
+  }
+
+  if (preferences.period === "classic" && item.type === "book") {
+    return year <= 2000;
   }
 
   return true;
@@ -74,7 +78,8 @@ function matchesUserText(
 
 function sanitizeFinalResults(
   recommendations: Recommendation[],
-  preferences: UserPreferences
+  preferences: UserPreferences,
+  limit: number
 ): Recommendation[] {
   const unique = new Map<string, Recommendation>();
 
@@ -100,7 +105,7 @@ function sanitizeFinalResults(
 
       return getYear(b) - getYear(a);
     })
-    .slice(0, preferences.contentType === "both" ? 8 : 6);
+    .slice(0, limit);
 }
 
 export async function getRecommendations(
@@ -124,18 +129,22 @@ export async function getRecommendations(
     results.push(...books);
   }
 
-  const orderedResults = sanitizeFinalResults(results, preferences);
+  const baseResults = sanitizeFinalResults(results, preferences, 16);
 
-  const aiResult = await getAIRecommendations(preferences, orderedResults);
+  const aiResult = await getAIRecommendations(preferences, baseResults);
 
   const finalResults = sanitizeFinalResults(
     aiResult.recommendations,
-    preferences
+    preferences,
+    preferences.contentType === "both" ? 8 : 6
   );
 
   return {
     source: aiResult.source,
     message: aiResult.message,
-    recommendations: finalResults.length > 0 ? finalResults : orderedResults,
+    recommendations:
+      finalResults.length > 0
+        ? finalResults
+        : sanitizeFinalResults(baseResults, preferences, preferences.contentType === "both" ? 8 : 6),
   };
 }

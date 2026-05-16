@@ -85,7 +85,7 @@ export async function getAIRecommendations(
       return {
         source: "local",
         message:
-          "Modo local: no se pudo consultar el endpoint del servidor. Se muestran recomendaciones locales.",
+          "Modo local: no se encontró el endpoint /api/recommendations. Revisa que exista api/recommendations.js en la raíz del proyecto.",
         recommendations: fallbackResults,
       };
     }

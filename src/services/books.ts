@@ -1,6 +1,20 @@
 import type { Recommendation, UserPreferences } from "../types";
 
-const BOOKS: Recommendation[] = [
+interface OpenLibraryDoc {
+  key?: string;
+  title?: string;
+  author_name?: string[];
+  first_publish_year?: number;
+  subject?: string[];
+  cover_i?: number;
+  isbn?: string[];
+}
+
+interface OpenLibraryResponse {
+  docs?: OpenLibraryDoc[];
+}
+
+const LOCAL_BOOKS: Recommendation[] = [
   {
     id: "book-project-hail-mary",
     type: "book",
@@ -11,9 +25,8 @@ const BOOKS: Recommendation[] = [
     description:
       "Un científico despierta en una misión espacial crítica y debe reconstruir lo ocurrido para intentar salvar a la humanidad.",
     reason:
-      "Encaja si busca ciencia ficción reciente, ágil, técnica y con sentido de aventura.",
-    imageUrl:
-      "https://covers.openlibrary.org/b/isbn/9780593135204-L.jpg",
+      "Encaja si busca ciencia ficción reciente, ágil, técnica y con aventura.",
+    imageUrl: "https://covers.openlibrary.org/b/isbn/9780593135204-L.jpg",
   },
   {
     id: "book-the-ministry-for-the-future",
@@ -21,13 +34,12 @@ const BOOKS: Recommendation[] = [
     title: "The Ministry for the Future",
     creator: "Kim Stanley Robinson",
     year: "2020",
-    genre: "Ciencia ficción / Clima / Política",
+    genre: "Ciencia ficción / Política / Clima",
     description:
-      "Una novela especulativa sobre crisis climática, decisiones políticas y futuros posibles.",
+      "Una novela especulativa sobre crisis climática, política y futuros posibles.",
     reason:
-      "Funciona para quien quiere ciencia ficción reciente, seria y centrada en problemas globales.",
-    imageUrl:
-      "https://covers.openlibrary.org/b/isbn/9780316300131-L.jpg",
+      "Funciona para quien quiere ciencia ficción reciente, seria y crítica.",
+    imageUrl: "https://covers.openlibrary.org/b/isbn/9780316300131-L.jpg",
   },
   {
     id: "book-mexican-gothic",
@@ -37,11 +49,10 @@ const BOOKS: Recommendation[] = [
     year: "2020",
     genre: "Terror / Misterio / Gótico",
     description:
-      "Una joven viaja a una mansión aislada para descubrir qué ocurre con su prima recién casada.",
+      "Una joven viaja a una mansión aislada para descubrir qué ocurre con su prima.",
     reason:
       "Buena opción si busca terror reciente, misterio y atmósfera gótica.",
-    imageUrl:
-      "https://covers.openlibrary.org/b/isbn/9780525620785-L.jpg",
+    imageUrl: "https://covers.openlibrary.org/b/isbn/9780525620785-L.jpg",
   },
   {
     id: "book-the-invisible-life",
@@ -51,11 +62,10 @@ const BOOKS: Recommendation[] = [
     year: "2020",
     genre: "Fantasía / Romance / Drama",
     description:
-      "Una mujer hace un trato que le permite vivir durante siglos, pero nadie puede recordarla.",
+      "Una mujer vive durante siglos, pero nadie puede recordarla.",
     reason:
       "Recomendada si busca fantasía reciente, emocional y con romance.",
-    imageUrl:
-      "https://covers.openlibrary.org/b/isbn/9780765387561-L.jpg",
+    imageUrl: "https://covers.openlibrary.org/b/isbn/9780765387561-L.jpg",
   },
   {
     id: "book-tress",
@@ -68,8 +78,7 @@ const BOOKS: Recommendation[] = [
       "Una joven emprende un viaje por mares peligrosos para rescatar a alguien importante.",
     reason:
       "Encaja si quiere fantasía reciente, aventura y lectura entretenida.",
-    imageUrl:
-      "https://covers.openlibrary.org/b/isbn/9781250899651-L.jpg",
+    imageUrl: "https://covers.openlibrary.org/b/isbn/9781250899651-L.jpg",
   },
   {
     id: "book-yellowface",
@@ -77,13 +86,12 @@ const BOOKS: Recommendation[] = [
     title: "Yellowface",
     creator: "R. F. Kuang",
     year: "2023",
-    genre: "Drama / Sátira / Literatura contemporánea",
+    genre: "Drama / Sátira / Contemporáneo",
     description:
       "Una escritora toma una decisión cuestionable que expone ambición, identidad y mercado editorial.",
     reason:
       "Sirve si busca algo reciente, crítico y con temas contemporáneos.",
-    imageUrl:
-      "https://covers.openlibrary.org/b/isbn/9780063250833-L.jpg",
+    imageUrl: "https://covers.openlibrary.org/b/isbn/9780063250833-L.jpg",
   },
   {
     id: "book-fourth-wing",
@@ -93,11 +101,10 @@ const BOOKS: Recommendation[] = [
     year: "2023",
     genre: "Fantasía / Romance / Aventura",
     description:
-      "Una joven entra a una academia militar de jinetes de dragones donde debe sobrevivir y demostrar su capacidad.",
+      "Una joven entra a una academia militar de jinetes de dragones.",
     reason:
       "Buena opción si quiere fantasía reciente, romance y acción.",
-    imageUrl:
-      "https://covers.openlibrary.org/b/isbn/9781649374042-L.jpg",
+    imageUrl: "https://covers.openlibrary.org/b/isbn/9781649374042-L.jpg",
   },
   {
     id: "book-tomorrow-tomorrow",
@@ -107,11 +114,10 @@ const BOOKS: Recommendation[] = [
     year: "2022",
     genre: "Drama / Contemporáneo",
     description:
-      "Dos amigos construyen una relación creativa alrededor del diseño de videojuegos y los cambios de la vida adulta.",
+      "Dos amigos construyen una relación creativa alrededor del diseño de videojuegos.",
     reason:
-      "Encaja si busca una lectura reciente, humana y relacionada con creatividad y tecnología.",
-    imageUrl:
-      "https://covers.openlibrary.org/b/isbn/9780593321201-L.jpg",
+      "Encaja si busca una lectura reciente, humana y relacionada con creatividad.",
+    imageUrl: "https://covers.openlibrary.org/b/isbn/9780593321201-L.jpg",
   },
   {
     id: "book-dune",
@@ -121,11 +127,10 @@ const BOOKS: Recommendation[] = [
     year: "1965",
     genre: "Ciencia ficción / Política",
     description:
-      "Una familia noble llega a un planeta desértico clave para el poder económico y político del universo.",
+      "Una familia noble llega a un planeta desértico clave para el poder del universo.",
     reason:
-      "Conviene si busca ciencia ficción extensa, estratégica y con construcción de mundo.",
-    imageUrl:
-      "https://covers.openlibrary.org/b/isbn/9780441172719-L.jpg",
+      "Conviene si busca ciencia ficción estratégica y construcción de mundo.",
+    imageUrl: "https://covers.openlibrary.org/b/isbn/9780441172719-L.jpg",
   },
   {
     id: "book-the-hobbit",
@@ -135,11 +140,10 @@ const BOOKS: Recommendation[] = [
     year: "1937",
     genre: "Fantasía / Aventura",
     description:
-      "Bilbo Bolsón inicia un viaje inesperado junto a un grupo de enanos para recuperar un tesoro.",
+      "Bilbo Bolsón inicia un viaje inesperado junto a un grupo de enanos.",
     reason:
-      "Buena opción para fantasía accesible, aventura y lectura de dificultad moderada.",
-    imageUrl:
-      "https://covers.openlibrary.org/b/isbn/9780547928227-L.jpg",
+      "Buena opción para fantasía accesible, aventura y lectura clásica.",
+    imageUrl: "https://covers.openlibrary.org/b/isbn/9780547928227-L.jpg",
   },
 ];
 
@@ -155,8 +159,90 @@ function getYear(item: Recommendation): number {
   return Number.parseInt(item.year, 10);
 }
 
+function mapGenreToEnglish(genre: string): string {
+  const normalized = normalize(genre);
+
+  const map: Record<string, string> = {
+    accion: "action",
+    aventura: "adventure",
+    "ciencia ficcion": "science fiction",
+    comedia: "humor",
+    drama: "drama",
+    fantasia: "fantasy",
+    historico: "historical fiction",
+    misterio: "mystery",
+    romance: "romance",
+    terror: "horror",
+  };
+
+  return map[normalized] || genre;
+}
+
+function buildSearchQuery(preferences: UserPreferences): string {
+  const parts: string[] = [];
+
+  if (preferences.creator.trim()) {
+    parts.push(preferences.creator.trim());
+  }
+
+  if (preferences.genre.trim()) {
+    parts.push(mapGenreToEnglish(preferences.genre));
+  }
+
+  if (preferences.mood === "exciting") {
+    parts.push("adventure");
+  }
+
+  if (preferences.mood === "thoughtful" || preferences.mood === "deep") {
+    parts.push("literary fiction");
+  }
+
+  if (preferences.mood === "family") {
+    parts.push("young adult");
+  }
+
+  return parts.join(" ").trim() || "fiction";
+}
+
+function getCoverUrl(doc: OpenLibraryDoc): string {
+  if (doc.cover_i) {
+    return `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+  }
+
+  const isbn = doc.isbn?.[0];
+
+  if (isbn) {
+    return `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+  }
+
+  return "";
+}
+
+function openLibraryToRecommendation(doc: OpenLibraryDoc): Recommendation | null {
+  if (!doc.title || !doc.first_publish_year) return null;
+
+  const subjects = doc.subject?.slice(0, 3).join(" / ") || "Libro";
+  const author = doc.author_name?.[0] || "Autor no disponible";
+
+  return {
+    id: `openlibrary-${doc.key || normalize(doc.title).replace(/\s+/g, "-")}`,
+    type: "book",
+    title: doc.title,
+    creator: author,
+    year: String(doc.first_publish_year),
+    genre: subjects,
+    description: `Libro encontrado en Open Library relacionado con ${subjects}.`,
+    reason:
+      "Coincide con los filtros de búsqueda y se incluye como resultado ampliado desde Open Library.",
+    imageUrl: getCoverUrl(doc),
+    score: 1,
+  };
+}
+
 function matchesPeriod(item: Recommendation, preferences: UserPreferences): boolean {
   const year = getYear(item);
+
+  if (!Number.isFinite(year)) return false;
 
   if (preferences.period === "recent") {
     return year >= 2020;
@@ -171,6 +257,7 @@ function matchesPeriod(item: Recommendation, preferences: UserPreferences): bool
 
 function matchesText(item: Recommendation, query: string): boolean {
   const cleanQuery = normalize(query);
+
   if (!cleanQuery) return true;
 
   const target = normalize(
@@ -181,64 +268,103 @@ function matchesText(item: Recommendation, query: string): boolean {
 }
 
 function scoreBook(item: Recommendation, preferences: UserPreferences): number {
-  let score = 0;
+  let score = item.score ?? 0;
 
   const genre = normalize(preferences.genre);
   const text = normalize(
     `${item.title} ${item.creator} ${item.genre} ${item.description} ${item.reason}`
   );
 
-  if (genre && normalize(item.genre).includes(genre)) score += 5;
+  if (genre && text.includes(genre)) score += 6;
+
+  const englishGenre = normalize(mapGenreToEnglish(preferences.genre));
+  if (englishGenre && text.includes(englishGenre)) score += 5;
 
   if (preferences.creator && matchesText(item, preferences.creator)) {
-    score += 4;
+    score += 5;
   }
 
-  if (preferences.period === "recent" && getYear(item) >= 2020) score += 5;
+  if (preferences.period === "recent" && getYear(item) >= 2020) score += 4;
   if (preferences.period === "classic" && getYear(item) <= 2000) score += 3;
 
-  if (preferences.mood === "light" && /(entretenida|aventura|romance|agil)/.test(text)) {
+  if (preferences.mood === "light" && /(humor|romance|adventure|young adult|fantasy)/.test(text)) {
     score += 2;
   }
 
-  if (preferences.mood === "deep" && /(politica|crisis|critico|humana|seria)/.test(text)) {
+  if (preferences.mood === "deep" && /(literary|drama|politic|philosophy|society|climate)/.test(text)) {
     score += 2;
   }
 
-  if (preferences.mood === "exciting" && /(aventura|accion|sobrevivir|dragones|misterio)/.test(text)) {
+  if (preferences.mood === "exciting" && /(adventure|action|fantasy|dragon|mystery|thriller)/.test(text)) {
     score += 2;
   }
 
-  if (preferences.mood === "thoughtful" && /(critico|problemas globales|contemporaneos|politica)/.test(text)) {
+  if (preferences.mood === "thoughtful" && /(literary|politic|society|philosophy|science fiction)/.test(text)) {
     score += 2;
   }
 
-  if (preferences.mood === "family" && /(aventura|fantasia|entretenida)/.test(text)) {
-    score += 1;
-  }
-
-  if (preferences.length === "short" && /(yellowface|mexican gothic)/.test(text)) {
-    score += 1;
-  }
-
-  if (preferences.length === "long" && /(dune|ministry|fourth wing|sanderson)/.test(text)) {
-    score += 1;
+  if (preferences.mood === "family" && /(juvenile|young adult|fantasy|adventure)/.test(text)) {
+    score += 2;
   }
 
   return score;
 }
 
-export async function searchBooks(preferences: UserPreferences): Promise<Recommendation[]> {
-  const genre = normalize(preferences.genre);
+async function searchOpenLibrary(
+  preferences: UserPreferences
+): Promise<Recommendation[]> {
+  const query = buildSearchQuery(preferences);
 
-  const results = BOOKS
+  const params = new URLSearchParams({
+    q: query,
+    limit: "24",
+    fields:
+      "key,title,author_name,first_publish_year,subject,cover_i,isbn",
+  });
+
+  const response = await fetch(`https://openlibrary.org/search.json?${params}`);
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const data = (await response.json()) as OpenLibraryResponse;
+
+  return (data.docs || [])
+    .map(openLibraryToRecommendation)
+    .filter((item): item is Recommendation => Boolean(item));
+}
+
+function uniqueBooks(items: Recommendation[]): Recommendation[] {
+  const map = new Map<string, Recommendation>();
+
+  for (const item of items) {
+    const key = `${normalize(item.title)}-${normalize(item.creator)}`;
+
+    if (!map.has(key)) {
+      map.set(key, item);
+    }
+  }
+
+  return Array.from(map.values());
+}
+
+export async function searchBooks(
+  preferences: UserPreferences
+): Promise<Recommendation[]> {
+  let externalResults: Recommendation[] = [];
+
+  try {
+    externalResults = await searchOpenLibrary(preferences);
+  } catch {
+    externalResults = [];
+  }
+
+  const combined = uniqueBooks([...externalResults, ...LOCAL_BOOKS]);
+
+  const filtered = combined
     .filter((item) => matchesPeriod(item, preferences))
-    .filter((item) => {
-      const genreOk = !genre || normalize(item.genre).includes(genre);
-      const textOk = matchesText(item, preferences.creator);
-
-      return genreOk && textOk;
-    })
+    .filter((item) => matchesText(item, preferences.creator))
     .map((item) => ({
       ...item,
       score: scoreBook(item, preferences),
@@ -249,5 +375,5 @@ export async function searchBooks(preferences: UserPreferences): Promise<Recomme
       return getYear(b) - getYear(a);
     });
 
-  return results.slice(0, 8);
+  return filtered.slice(0, 12);
 }
