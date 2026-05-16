@@ -1,78 +1,106 @@
 function getRecentRule(preferences) {
   if (preferences.period !== "recent") {
-    return "Si el usuario no pidió contenido reciente, no apliques restricción estricta de año.";
+    return "No apliques restricción estricta de año si el usuario no pidió contenido reciente.";
   }
 
   if (preferences.contentType === "movies") {
-    return "El usuario pidió contenido reciente. TODAS las películas deben ser del año 2024 o posteriores.";
+    return "Todas las películas deben ser del año 2024 o posteriores.";
   }
 
   if (preferences.contentType === "books") {
-    return "El usuario pidió contenido reciente. TODOS los libros deben ser del año 2020 o posteriores.";
+    return "Todos los libros deben ser del año 2020 o posteriores.";
   }
 
-  return "El usuario pidió contenido reciente. Las películas deben ser del año 2024 o posteriores. Los libros deben ser del año 2020 o posteriores.";
+  return "Las películas deben ser del año 2024 o posteriores. Los libros deben ser del año 2020 o posteriores.";
 }
 
-function buildPrompt(preferences, baseResults) {
-  const compactResults = baseResults.slice(0, 8).map((item) => ({
+function getContentRule(preferences) {
+  if (preferences.contentType === "movies") {
+    return "Devuelve únicamente películas. No incluyas libros.";
+  }
+
+  if (preferences.contentType === "books") {
+    return "Devuelve únicamente libros. No incluyas películas.";
+  }
+
+  return "Puedes devolver películas y libros.";
+}
+
+function compactBaseResults(baseResults) {
+  return baseResults.slice(0, 6).map((item) => ({
     id: item.id,
     type: item.type,
     title: item.title,
     creator: item.creator,
     year: item.year,
     genre: item.genre,
-    description: item.description,
-    reason: item.reason,
     imageUrl: item.imageUrl || "",
     score: item.score || 0,
   }));
+}
+
+function buildPrompt(preferences, baseResults) {
+  const compactResults = compactBaseResults(baseResults);
 
   return `
 Eres un recomendador de películas y libros.
 
-Debes elegir y ordenar recomendaciones usando los filtros del usuario.
-
-Reglas obligatorias:
-- Recomienda solo según el tipo solicitado: movies, books o both.
-- Si el usuario pide "movies", no devuelvas libros.
-- Si el usuario pide "books", no devuelvas películas.
-- Si el usuario pide "both", puedes devolver películas y libros.
-- ${getRecentRule(preferences)}
-- Respeta el género solicitado.
-- Respeta autor, director, actor o palabra clave si existe.
-- Usa preferiblemente los resultados base.
-- Si usas resultados base, conserva su imageUrl.
-- No inventes imageUrl si no tienes una.
-- Devuelve máximo 6 recomendaciones.
-- Devuelve únicamente JSON válido.
-- No agregues texto fuera del JSON.
-
-Preferencias del usuario:
+Filtros del usuario:
 ${JSON.stringify(preferences)}
 
-Resultados base:
+Resultados base disponibles:
 ${JSON.stringify(compactResults)}
 
-Formato exacto:
-{
-  "recommendations": [
-    {
-      "id": "string",
-      "type": "movie" | "book",
-      "title": "string",
-      "creator": "string",
-      "year": "string",
-      "genre": "string",
-      "description": "string",
-      "reason": "string",
-      "imageUrl": "string",
-      "score": number
-    }
-  ]
-}
+Reglas:
+- ${getContentRule(preferences)}
+- ${getRecentRule(preferences)}
+- Respeta el género, autor, director, actor o palabra clave si existen.
+- Usa preferiblemente resultados base.
+- Conserva imageUrl cuando exista.
+- No inventes imageUrl.
+- Devuelve entre 3 y 6 recomendaciones.
+- Cada reason debe ser breve: máximo 22 palabras.
+- Cada description debe ser breve: máximo 22 palabras.
+- Devuelve solo JSON válido.
 `;
 }
+
+const responseSchema = {
+  type: "OBJECT",
+  properties: {
+    recommendations: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          id: { type: "STRING" },
+          type: { type: "STRING" },
+          title: { type: "STRING" },
+          creator: { type: "STRING" },
+          year: { type: "STRING" },
+          genre: { type: "STRING" },
+          description: { type: "STRING" },
+          reason: { type: "STRING" },
+          imageUrl: { type: "STRING" },
+          score: { type: "NUMBER" },
+        },
+        required: [
+          "id",
+          "type",
+          "title",
+          "creator",
+          "year",
+          "genre",
+          "description",
+          "reason",
+          "imageUrl",
+          "score",
+        ],
+      },
+    },
+  },
+  required: ["recommendations"],
+};
 
 function cleanJson(text) {
   return text
@@ -80,6 +108,32 @@ function cleanJson(text) {
     .replace(/^```/i, "")
     .replace(/```$/i, "")
     .trim();
+}
+
+function extractJson(text) {
+  const cleaned = cleanJson(text);
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const firstBrace = cleaned.indexOf("{");
+    const lastBrace = cleaned.lastIndexOf("}");
+
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      const possibleJson = cleaned.slice(firstBrace, lastBrace + 1);
+      return JSON.parse(possibleJson);
+    }
+
+    throw new Error("No se pudo extraer JSON válido de la respuesta de Gemini.");
+  }
+}
+
+function extractGeminiText(data) {
+  return (
+    data?.candidates?.[0]?.content?.parts
+      ?.map((part) => part.text || "")
+      .join("") || ""
+  );
 }
 
 function isQuotaError(status, body) {
@@ -91,12 +145,71 @@ function isQuotaError(status, body) {
   );
 }
 
-function extractGeminiText(data) {
+function normalizeType(type) {
+  if (type === "movie" || type === "book") return type;
+  return "";
+}
+
+function normalizeRecommendation(item) {
+  return {
+    id: String(item.id || `${item.type}-${item.title}`),
+    type: normalizeType(item.type),
+    title: String(item.title || ""),
+    creator: String(item.creator || ""),
+    year: String(item.year || ""),
+    genre: String(item.genre || ""),
+    description: String(item.description || ""),
+    reason: String(item.reason || ""),
+    imageUrl: String(item.imageUrl || ""),
+    score: Number(item.score || 0),
+  };
+}
+
+function isValidRecommendation(item) {
   return (
-    data?.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text || "")
-      .join("") || ""
+    item &&
+    (item.type === "movie" || item.type === "book") &&
+    item.title &&
+    item.creator &&
+    item.year &&
+    item.genre &&
+    item.description &&
+    item.reason
   );
+}
+
+function filterByPreferences(recommendations, preferences) {
+  return recommendations.filter((item) => {
+    const year = Number.parseInt(item.year, 10);
+
+    if (!Number.isFinite(year)) return false;
+
+    if (preferences.contentType === "movies" && item.type !== "movie") {
+      return false;
+    }
+
+    if (preferences.contentType === "books" && item.type !== "book") {
+      return false;
+    }
+
+    if (preferences.period === "recent" && item.type === "movie" && year < 2024) {
+      return false;
+    }
+
+    if (preferences.period === "recent" && item.type === "book" && year < 2020) {
+      return false;
+    }
+
+    if (preferences.period === "classic" && item.type === "movie" && year > 2010) {
+      return false;
+    }
+
+    if (preferences.period === "classic" && item.type === "book" && year > 2000) {
+      return false;
+    }
+
+    return true;
+  });
 }
 
 export default async function handler(req, res) {
@@ -144,17 +257,14 @@ export default async function handler(req, res) {
           contents: [
             {
               role: "user",
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
+              parts: [{ text: prompt }],
             },
           ],
           generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 600,
+            temperature: 0.15,
+            maxOutputTokens: 900,
             responseMimeType: "application/json",
+            responseSchema,
           },
         }),
       }
@@ -198,14 +308,35 @@ export default async function handler(req, res) {
     let parsed;
 
     try {
-      parsed = JSON.parse(cleanJson(outputText));
+      parsed = extractJson(outputText);
     } catch (error) {
       console.error("GEMINI_JSON_PARSE_ERROR", outputText);
 
       return res.status(200).json({
         source: "local",
+        message: `Modo local: Gemini respondió, pero el formato JSON no fue válido. Detalle: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        recommendations: [],
+      });
+    }
+
+    const recommendations = Array.isArray(parsed.recommendations)
+      ? parsed.recommendations
+          .map(normalizeRecommendation)
+          .filter(isValidRecommendation)
+      : [];
+
+    const filteredRecommendations = filterByPreferences(
+      recommendations,
+      preferences
+    ).slice(0, preferences.contentType === "both" ? 8 : 6);
+
+    if (filteredRecommendations.length === 0) {
+      return res.status(200).json({
+        source: "local",
         message:
-          "Modo local: Gemini respondió, pero el formato JSON no fue válido. Se muestran recomendaciones locales.",
+          "Modo local: Gemini respondió, pero no devolvió recomendaciones válidas según los filtros.",
         recommendations: [],
       });
     }
@@ -213,9 +344,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       source: "ai",
       message: "Modo IA: recomendaciones generadas usando Google Gemini.",
-      recommendations: Array.isArray(parsed.recommendations)
-        ? parsed.recommendations
-        : [],
+      recommendations: filteredRecommendations,
     });
   } catch (error) {
     console.error("INTERNAL_GEMINI_ERROR", error);
