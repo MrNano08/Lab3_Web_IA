@@ -100,14 +100,15 @@ export default async function handler(req, res) {
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
 
-  if (!OPENAI_API_KEY) {
-    return res.status(200).json({
-      source: "local",
-      message:
-        "Modo local: no hay API key configurada en Vercel. El sistema no está usando IA.",
-      recommendations: [],
-    });
-  }
+return res.status(200).json({
+  source: "local",
+  message: `Modo local: OpenAI respondió con error ${response.status}. Detalle: ${errorText.slice(
+    0,
+    300
+  )}`,
+  recommendations: [],
+});
+  
 
   const { preferences, baseResults } = req.body || {};
 
@@ -177,12 +178,13 @@ export default async function handler(req, res) {
       message: "Modo IA: recomendaciones generadas usando inteligencia artificial.",
       recommendations: parsed.recommendations || [],
     });
-  } catch (error) {
-    return res.status(200).json({
-      source: "local",
-      message:
-        "Modo local: no se pudo conectar con la IA. Se muestran recomendaciones locales.",
-      recommendations: [],
-    });
-  }
+} catch (error) {
+  return res.status(200).json({
+    source: "local",
+    message: `Modo local: error interno al consultar la IA. Detalle: ${
+      error instanceof Error ? error.message : String(error)
+    }`,
+    recommendations: [],
+  });
+}
 }
