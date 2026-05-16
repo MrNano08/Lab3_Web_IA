@@ -1,72 +1,45 @@
-import { useState } from "react";
-import type { RecommendationItem } from "../types";
+import type { Recommendation } from "../types";
 
-interface Props {
-  item: RecommendationItem;
+interface RecommendationCardProps {
+  recommendation: Recommendation;
 }
 
-const DESCRIPTION_LIMIT = 140;
-
-export default function RecommendationCard({ item }: Props) {
-  const [expanded, setExpanded] = useState(false);
-
-  const fullDescription = item.description || "Sin descripción disponible.";
-  const isLongDescription = fullDescription.length > DESCRIPTION_LIMIT;
-
-  const visibleDescription =
-    expanded || !isLongDescription
-      ? fullDescription
-      : `${fullDescription.slice(0, DESCRIPTION_LIMIT).trim()}...`;
+export function RecommendationCard({ recommendation }: RecommendationCardProps) {
+  const label = recommendation.type === "movie" ? "Película" : "Libro";
 
   return (
     <article className="recommendation-card">
-      <div className="card-image-wrapper">
-        {item.image ? (
-          <img src={item.image} alt={item.title} className="card-image" />
+      <div className="cover-frame">
+        {recommendation.imageUrl ? (
+          <img
+            src={recommendation.imageUrl}
+            alt={`Carátula de ${recommendation.title}`}
+            className="cover-image"
+            loading="lazy"
+          />
         ) : (
-          <div className="card-image placeholder">Sin imagen</div>
+          <div className="cover-placeholder">
+            <span>{recommendation.type === "movie" ? "🎬" : "📚"}</span>
+            <strong>{label}</strong>
+          </div>
         )}
       </div>
 
-      <div className="card-body">
-        <div className="card-top-row">
-          <h3 className="card-title">{item.title}</h3>
-          {typeof item.rating === "number" && (
-            <span className="card-rating">⭐ {item.rating.toFixed(1)}</span>
-          )}
+      <div className="card-content">
+        <div className="card-topline">
+          <span className={`content-badge ${recommendation.type}`}>{label}</span>
+          <span className="year">{recommendation.year}</span>
         </div>
 
-        <p className="card-type">
-          {item.type === "movie" ? "Película" : "Libro"}
-          {item.year ? ` • ${item.year}` : ""}
-        </p>
+        <h3>{recommendation.title}</h3>
+        <p className="creator">{recommendation.creator}</p>
+        <p className="genre">{recommendation.genre}</p>
+        <p className="description">{recommendation.description}</p>
 
-        <div className="card-description-box">
-          <p className={`card-description ${expanded ? "expanded" : ""}`}>
-            {visibleDescription}
-          </p>
-
-          {isLongDescription && (
-            <button
-              type="button"
-              className="card-toggle-btn"
-              onClick={() => setExpanded((prev) => !prev)}
-            >
-              {expanded ? "Ver menos" : "Ver más"}
-            </button>
-          )}
+        <div className="reason-box">
+          <strong>Por qué encaja:</strong>
+          <span>{recommendation.reason}</span>
         </div>
-
-        <p className="card-reason">{item.reason}</p>
-
-        <a
-          href={item.link}
-          target="_blank"
-          rel="noreferrer"
-          className="details-btn"
-        >
-          VER DETALLES
-        </a>
       </div>
     </article>
   );

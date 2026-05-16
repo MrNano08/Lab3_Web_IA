@@ -1,144 +1,111 @@
 import { useState } from "react";
-import PreferenceForm from "./components/PreferenceForm";
-import RecommendationCard from "./components/RecommendationCard";
+import "./App.css";
+import { PreferenceForm } from "./components/PreferenceForm";
+import { ResultsSection } from "./components/ResultsSection";
 import { getRecommendations } from "./services/recommender";
-import type { Preferences, RecommendationItem } from "./types";
+import type {
+  Recommendation,
+  RecommendationSource,
+  UserPreferences,
+} from "./types";
 
-export default function App() {
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<RecommendationItem[]>([]);
+function App() {
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [source, setSource] = useState<RecommendationSource | null>(null);
+  const [sourceMessage, setSourceMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalResults, setTotalResults] = useState(0);
-  const [lastPreferences, setLastPreferences] = useState<Preferences | null>(null);
 
-  async function fetchPage(preferences: Preferences, page: number) {
+  async function handleSearch(preferences: UserPreferences) {
+    setIsLoading(true);
+    setHasSearched(true);
+    setError("");
+    setSource(null);
+    setSourceMessage("");
+
     try {
-      setLoading(true);
-      setError("");
+      const result = await getRecommendations(preferences);
 
-      const response = await getRecommendations(preferences, page);
-
-      setResults(response.results);
-      setCurrentPage(response.page);
-      setTotalPages(response.totalPages);
-      setTotalResults(response.totalResults);
+      setRecommendations(result.recommendations);
+      setSource(result.source);
+      setSourceMessage(result.message);
     } catch (err) {
-      console.error(err);
-      setError("Ocurrió un error al generar las recomendaciones.");
-      setResults([]);
-      setCurrentPage(1);
-      setTotalPages(1);
-      setTotalResults(0);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Ocurrió un error al buscar recomendaciones.";
+
+      setError(message);
+      setRecommendations([]);
+      setSource(null);
+      setSourceMessage("");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }
-
-  function goTop() {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  }
-
-  async function handleSearch(preferences: Preferences) {
-    setLastPreferences(preferences);
-    await fetchPage(preferences, 1);
-    goTop();
-  }
-
-  async function handlePreviousPage() {
-    if (!lastPreferences || currentPage <= 1) return;
-    await fetchPage(lastPreferences, currentPage - 1);
-    goTop();
-  }
-
-  async function handleNextPage() {
-    if (!lastPreferences || currentPage >= totalPages) return;
-    await fetchPage(lastPreferences, currentPage + 1);
-    goTop();
   }
 
   return (
     <main className="app-shell">
-      <header className="topbar">
-        <div className="brand-block">
-          <div className="brand-icon">🎬</div>
-          <div>
-            <p className="brand-label">App Name</p>
-            <h1 className="brand-title">Películas IA</h1>
-          </div>
-        </div>
+      <div className="hero-layout">
+        <PreferenceForm onSubmit={handleSearch} isLoading={isLoading} />
 
-        <div className="topbar-center">
-          <div className="fake-search">Búsqueda</div>
-        </div>
-      </header>
+        <section className="content-panel">
+          {source && sourceMessage && (
+            <div
+              className={
+                source === "ai"
+                  ? "source-alert source-alert-ai"
+                  : "source-alert source-alert-local"
+              }
+            >
+              <strong>{source === "ai" ? "Búsqueda con IA" : "Advertencia"}</strong>
+              <span>{sourceMessage}</span>
+            </div>
+          )}
 
-      <section className="content-layout">
-        <aside className="sidebar-panel">
-          <PreferenceForm onSubmit={handleSearch} loading={loading} />
-        </aside>
-
-        <section className="main-panel">
-          <div className="section-header">
-            <h2>TUS RECOMENDACIONES PERSONALIZADAS</h2>
-            {totalResults > 0 && (
-              <p className="results-count">
-                {totalResults} resultados encontrados • Página {currentPage} de {totalPages}
-              </p>
-            )}
-          </div>
-
-          {error && <p className="error-message">{error}</p>}
-
-          {results.length === 0 && !loading && !error ? (
-            <div className="empty-state">
+          {isLoading && (
+            <div className="status-card">
+              <h2>Buscando recomendaciones...</h2>
               <p>
-                Completa tus preferencias y presiona{" "}
-                <strong>Generar recomendaciones</strong>.
+                El sistema está analizando tus filtros para generar resultados.
               </p>
             </div>
-          ) : (
-            <>
-              <div className="results-grid">
-                {results.map((item) => (
-                  <RecommendationCard
-                    key={`${item.type}-${item.id}`}
-                    item={item}
-                  />
-                ))}
-              </div>
+          )}
 
-              {results.length > 0 && (
-                <div className="pagination">
-                  <button
-                    className="pagination-btn"
-                    onClick={handlePreviousPage}
-                    disabled={loading || currentPage === 1}
-                  >
-                    Anterior
-                  </button>
+          {!isLoading && error && (
+            <div className="status-card error-card">
+              <h2>No se pudieron cargar las recomendaciones</h2>
+              <p>{error}</p>
+            </div>
+          )}
 
-                  <span className="pagination-info">
-                    Página {currentPage} de {totalPages}
-                  </span>
+          {!isLoading && !error && recommendations.length > 0 && (
+            <ResultsSection recommendations={recommendations} />
+          )}
 
-                  <button
-                    className="pagination-btn"
-                    onClick={handleNextPage}
-                    disabled={loading || currentPage === totalPages}
-                  >
-                    Siguiente
-                  </button>
-                </div>
-              )}
-            </>
+          {!isLoading && !error && hasSearched && recommendations.length === 0 && (
+            <div className="status-card">
+              <h2>No se encontraron resultados</h2>
+              <p>
+                Intenta cambiar el género, la época o quitar el autor/director.
+              </p>
+            </div>
+          )}
+
+          {!isLoading && !hasSearched && (
+            <div className="status-card">
+              <h2>Recomendaciones inteligentes</h2>
+              <p>
+                Selecciona si quieres películas, libros o ambos. El sistema
+                intentará usar IA; si no está disponible, lo advertirá en pantalla.
+              </p>
+            </div>
           )}
         </section>
-      </section>
+      </div>
     </main>
   );
 }
+
+export default App;

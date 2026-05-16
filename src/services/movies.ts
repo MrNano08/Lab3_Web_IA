@@ -1,213 +1,245 @@
-import type {
-  Preferences,
-  RecommendationItem,
-  RecommendationResponse,
-} from "../types";
+import type { Recommendation, UserPreferences } from "../types";
 
-import { callOpenAI } from "./openai";
+const MOVIES: Recommendation[] = [
+  {
+    id: "movie-dune-part-two",
+    type: "movie",
+    title: "Dune: Part Two",
+    creator: "Denis Villeneuve",
+    year: "2024",
+    genre: "Ciencia ficción / Aventura / Drama",
+    description:
+      "Paul Atreides continúa su camino entre política, guerra, profecías y poder en Arrakis.",
+    reason:
+      "Encaja si busca ciencia ficción reciente, visualmente fuerte y con conflicto político.",
+    imageUrl:
+      "https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
+  },
+  {
+    id: "movie-furiosa",
+    type: "movie",
+    title: "Furiosa: A Mad Max Saga",
+    creator: "George Miller",
+    year: "2024",
+    genre: "Acción / Aventura / Ciencia ficción",
+    description:
+      "Una historia de origen centrada en Furiosa dentro de un mundo desértico violento y caótico.",
+    reason:
+      "Funciona para quien quiere una película reciente, intensa y de ritmo alto.",
+    imageUrl:
+      "https://image.tmdb.org/t/p/w500/iADOJ8Zymht2JPMoy3R7xceZprc.jpg",
+  },
+  {
+    id: "movie-inside-out-2",
+    type: "movie",
+    title: "Inside Out 2",
+    creator: "Kelsey Mann",
+    year: "2024",
+    genre: "Animación / Comedia / Familiar",
+    description:
+      "Riley enfrenta nuevas emociones durante una etapa de cambios personales.",
+    reason:
+      "Recomendada si busca algo reciente, familiar, ligero y emocional.",
+    imageUrl:
+      "https://image.tmdb.org/t/p/w500/vpnVM9B6NMmQpWeZvzLvDESb2QY.jpg",
+  },
+  {
+    id: "movie-civil-war",
+    type: "movie",
+    title: "Civil War",
+    creator: "Alex Garland",
+    year: "2024",
+    genre: "Drama / Acción / Distopía",
+    description:
+      "Un grupo de periodistas atraviesa un país dividido por un conflicto interno.",
+    reason:
+      "Sirve si busca una película reciente, tensa y con lectura social.",
+    imageUrl:
+      "https://image.tmdb.org/t/p/w500/sh7Rg8Er3tFcN9BpKIPOMvALgZd.jpg",
+  },
+  {
+    id: "movie-the-fall-guy",
+    type: "movie",
+    title: "The Fall Guy",
+    creator: "David Leitch",
+    year: "2024",
+    genre: "Acción / Comedia / Romance",
+    description:
+      "Un doble de riesgo se ve envuelto en una investigación mientras intenta recuperar una relación.",
+    reason:
+      "Buena opción si quiere algo reciente, entretenido, ligero y con acción.",
+    imageUrl:
+      "https://image.tmdb.org/t/p/w500/tSz1qsmSJon0rqjHBxXZmrotuse.jpg",
+  },
+  {
+    id: "movie-godzilla-x-kong",
+    type: "movie",
+    title: "Godzilla x Kong: The New Empire",
+    creator: "Adam Wingard",
+    year: "2024",
+    genre: "Acción / Ciencia ficción / Aventura",
+    description:
+      "Godzilla y Kong enfrentan una amenaza que puede alterar el equilibrio entre titanes.",
+    reason:
+      "Encaja si busca una película reciente, visual, directa y de gran espectáculo.",
+    imageUrl:
+      "https://image.tmdb.org/t/p/w500/z1p34vh7dEOnLDmyCrlUVLuoDzd.jpg",
+  },
+  {
+    id: "movie-arrival",
+    type: "movie",
+    title: "Arrival",
+    creator: "Denis Villeneuve",
+    year: "2016",
+    genre: "Ciencia ficción / Drama",
+    description:
+      "Una lingüista intenta comunicarse con visitantes extraterrestres mientras enfrenta decisiones personales complejas.",
+    reason:
+      "Funciona bien si busca ciencia ficción reflexiva, emocional y con ideas profundas.",
+    imageUrl:
+      "https://image.tmdb.org/t/p/w500/x2FJsf1ElAgr63Y3PNPtJrcmpoe.jpg",
+  },
+  {
+    id: "movie-interstellar",
+    type: "movie",
+    title: "Interstellar",
+    creator: "Christopher Nolan",
+    year: "2014",
+    genre: "Ciencia ficción / Aventura / Drama",
+    description:
+      "Un grupo de exploradores viaja por el espacio para encontrar una posible salida al futuro de la humanidad.",
+    reason:
+      "Adecuada para quien quiere una historia emocionante, visual y con temas familiares.",
+    imageUrl:
+      "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
+  },
+  {
+    id: "movie-knives-out",
+    type: "movie",
+    title: "Knives Out",
+    creator: "Rian Johnson",
+    year: "2019",
+    genre: "Misterio / Comedia",
+    description:
+      "Un detective investiga una muerte dentro de una familia llena de intereses ocultos.",
+    reason:
+      "Buena opción si quiere misterio accesible, ágil y con humor.",
+    imageUrl:
+      "https://image.tmdb.org/t/p/w500/pThyQovXQrw2m0s9x82twj48Jq4.jpg",
+  },
+  {
+    id: "movie-spirited-away",
+    type: "movie",
+    title: "Spirited Away",
+    creator: "Hayao Miyazaki",
+    year: "2001",
+    genre: "Fantasía / Aventura",
+    description:
+      "Una niña entra en un mundo fantástico y debe adaptarse para rescatar a sus padres.",
+    reason:
+      "Recomendada para fantasía imaginativa, visualmente rica y apta para varios públicos.",
+    imageUrl:
+      "https://image.tmdb.org/t/p/w500/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg",
+  },
+];
 
-const TMDB_API = "https://api.themoviedb.org/3";
-const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
-const TMDB_BEARER_TOKEN = import.meta.env.VITE_TMDB_BEARER_TOKEN;
-
-function splitAndClean(value: string): string[] {
+function normalize(value: string): string {
   return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function normalizeText(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
     .toLowerCase()
-    .trim();
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
-async function tmdbFetch(endpoint: string) {
-  const response = await fetch(`${TMDB_API}${endpoint}`, {
-    headers: {
-      Authorization: `Bearer ${TMDB_BEARER_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error("Error consultando TMDb.");
-  }
-
-  return response.json();
+function getYear(item: Recommendation): number {
+  return Number.parseInt(item.year, 10);
 }
 
-async function getGenreMap(): Promise<Map<string, number>> {
-  const data = await tmdbFetch("/genre/movie/list?language=es-ES");
-  const map = new Map<string, number>();
+function matchesPeriod(item: Recommendation, preferences: UserPreferences): boolean {
+  const year = getYear(item);
 
-  for (const genre of data.genres ?? []) {
-    const name = String(genre.name ?? "");
-    map.set(normalizeText(name), genre.id);
+  if (preferences.period === "recent") {
+    return year >= 2024;
   }
 
-  return map;
+  if (preferences.period === "classic") {
+    return year <= 2010;
+  }
+
+  return true;
 }
 
-function safeArray(value: any): string[] {
-  return Array.isArray(value) ? value : [];
+function matchesText(item: Recommendation, query: string): boolean {
+  const cleanQuery = normalize(query);
+  if (!cleanQuery) return true;
+
+  const target = normalize(
+    `${item.title} ${item.creator} ${item.genre} ${item.description} ${item.reason}`
+  );
+
+  return target.includes(cleanQuery);
 }
 
-async function searchPersonIds(actorNames: string[]): Promise<number[]> {
-  const ids: number[] = [];
+function scoreMovie(item: Recommendation, preferences: UserPreferences): number {
+  let score = 0;
 
-  for (const actorName of actorNames) {
-    const data = await tmdbFetch(
-      `/search/person?query=${encodeURIComponent(actorName)}&language=es-ES&page=1`
-    );
+  const genre = normalize(preferences.genre);
+  const text = normalize(
+    `${item.title} ${item.creator} ${item.genre} ${item.description} ${item.reason}`
+  );
 
-    const firstMatch = data.results?.[0]?.id;
-    if (typeof firstMatch === "number") {
-      ids.push(firstMatch);
-    }
+  if (genre && normalize(item.genre).includes(genre)) score += 5;
+
+  if (preferences.creator && matchesText(item, preferences.creator)) {
+    score += 4;
   }
 
-  return ids;
+  if (preferences.period === "recent" && getYear(item) >= 2024) score += 5;
+  if (preferences.period === "classic" && getYear(item) <= 2010) score += 3;
+
+  if (preferences.mood === "light" && /(comedia|familiar|liger|entretenid)/.test(text)) {
+    score += 2;
+  }
+
+  if (preferences.mood === "deep" && /(profund|filosofic|reflexiv|drama|politic)/.test(text)) {
+    score += 2;
+  }
+
+  if (preferences.mood === "exciting" && /(accion|aventura|intensa|ritmo alto|espectaculo)/.test(text)) {
+    score += 2;
+  }
+
+  if (preferences.mood === "thoughtful" && /(pensar|social|politic|reflexiv|distopia)/.test(text)) {
+    score += 2;
+  }
+
+  if (preferences.mood === "family" && /(familiar|animacion|varios publicos)/.test(text)) {
+    score += 2;
+  }
+
+  return score;
 }
 
-function buildReason(genres: string[], actors: string[]): string {
-  if (genres.length > 0 && actors.length > 0) {
-    return `Coincide con los géneros ${genres.join(", ")} y con actores relacionados como ${actors.join(", ")}.`;
-  }
+export async function searchMovies(preferences: UserPreferences): Promise<Recommendation[]> {
+  const genre = normalize(preferences.genre);
 
-  if (genres.length > 0) {
-    return `Coincide con tus géneros preferidos: ${genres.join(", ")}.`;
-  }
+  const results = MOVIES
+    .filter((item) => matchesPeriod(item, preferences))
+    .filter((item) => {
+      const genreOk = !genre || normalize(item.genre).includes(genre);
+      const textOk = matchesText(item, preferences.creator);
 
-  if (actors.length > 0) {
-    return `Coincide con actores relacionados como ${actors.join(", ")}.`;
-  }
+      return genreOk && textOk;
+    })
+    .map((item) => ({
+      ...item,
+      score: scoreMovie(item, preferences),
+    }))
+    .sort((a, b) => {
+      const scoreDiff = (b.score ?? 0) - (a.score ?? 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      return getYear(b) - getYear(a);
+    });
 
-  return "Se muestra por popularidad porque no ingresaste filtros específicos.";
-}
-
-async function getSmartPreferences(preferences: Preferences) {
-  const prompt = `
-El usuario quiere recomendaciones de películas.
-
-Preferencias actuales:
-- Géneros: ${preferences.genres}
-- Actores: ${preferences.actors}
-
-Devuelve JSON:
-{
-  "genres": [],
-  "actors": [],
-  "reason": ""
-}
-
-Reglas:
-- Puedes corregir errores
-- Puedes agregar géneros relacionados
-- Puedes sugerir actores similares
-- Mantén coherencia con la intención original
-`;
-
-  try {
-    const result = await callOpenAI(prompt);
-
-    return {
-      genres: safeArray(result.genres).join(", ") || preferences.genres,
-actors: safeArray(result.actors).join(", ") || preferences.actors,
-      aiReason: result.reason ?? "",
-    };
-  } catch (error) {
-    console.warn("Fallback sin IA");
-    return {
-      ...preferences,
-      aiReason: "",
-    };
-  }
-}
-
-export async function fetchMovieRecommendations(
-   preferences: Preferences,
-  page = 1
-): Promise<RecommendationResponse> {
-const smart = await getSmartPreferences(preferences);
-
-const genres = splitAndClean(smart.genres);
-const actors = splitAndClean(smart.actors);
-
-  const genreMap = await getGenreMap();
-
-  const genreIds = genres
-    .map((genre) => genreMap.get(normalizeText(genre)))
-    .filter((id): id is number => typeof id === "number");
-
-  const actorIds = actors.length > 0 ? await searchPersonIds(actors) : [];
-
-  const params = new URLSearchParams();
-  params.set("language", "es-ES");
-  params.set("page", String(page));
-  params.set("include_adult", "false");
-  params.set("include_video", "false");
-
-  // Mejora importante:
-  // - si hay filtros, usamos discover con filtros reales
-  // - evitamos resultados demasiado raros con vote_count.gte
-  // - usamos popularity.desc para algo más estable
-  params.set("sort_by", "popularity.desc");
-  params.set("vote_count.gte", "200");
-
-  if (genreIds.length > 0) {
-    params.set("with_genres", genreIds.join(","));
-  }
-
-  if (actorIds.length > 0) {
-    // pipe = OR entre actores
-    params.set("with_cast", actorIds.join("|"));
-  }
-
-  let endpoint = `/discover/movie?${params.toString()}`;
-
-  // Si el usuario no puso nada, seguimos mostrando populares, pero paginados
-  if (genreIds.length === 0 && actorIds.length === 0) {
-    endpoint = `/movie/popular?language=es-ES&page=${page}`;
-  }
-
-  const data = await tmdbFetch(endpoint);
-
-  const movies = Array.isArray(data.results) ? data.results : [];
-
-
-
-const results: RecommendationItem[] = movies.map((movie: any): RecommendationItem => ({
-  id: String(movie.id),
-  type: "movie",
-  title: movie.title ?? "Sin título",
-  subtitle:
-    movie.original_title && movie.original_title !== movie.title
-      ? movie.original_title
-      : "",
-  description: movie.overview ?? "Sin descripción disponible.",
-  image: movie.poster_path
-    ? `${TMDB_IMAGE_BASE}${movie.poster_path}`
-    : undefined,
-  year: movie.release_date ? String(movie.release_date).slice(0, 4) : "",
-  rating:
-    typeof movie.vote_average === "number" ? movie.vote_average : undefined,
-  extraInfo:
-    genres.length > 0
-      ? `Géneros buscados: ${genres.join(", ")}`
-      : "Resultados de TMDb",
-  link: `https://www.themoviedb.org/movie/${movie.id}`,
-  reason: smart.aiReason || buildReason(genres, actors),
-  
-}));
-
-  return {
-    results,
-    page: data.page ?? page,
-    totalPages: Math.min(data.total_pages ?? 1, 500),
-    totalResults: data.total_results ?? results.length,
-  };
+  return results.slice(0, 8);
 }
