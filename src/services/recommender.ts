@@ -108,6 +108,24 @@ function sanitizeFinalResults(
     .slice(0, limit);
 }
 
+function limitByContentType(
+  recommendations: Recommendation[],
+  preferences: UserPreferences
+): Recommendation[] {
+  if (preferences.contentType === "movies") {
+    return recommendations.filter((item) => item.type === "movie").slice(0, 1);
+  }
+
+  if (preferences.contentType === "books") {
+    return recommendations.filter((item) => item.type === "book").slice(0, 1);
+  }
+
+  const movie = recommendations.find((item) => item.type === "movie");
+  const book = recommendations.find((item) => item.type === "book");
+
+  return [movie, book].filter((item): item is Recommendation => Boolean(item));
+}
+
 export async function getRecommendations(
   preferences: UserPreferences
 ): Promise<RecommendationResult> {
@@ -129,22 +147,23 @@ export async function getRecommendations(
     results.push(...books);
   }
 
-  const baseResults = sanitizeFinalResults(results, preferences, 16);
+  const baseResults = sanitizeFinalResults(results, preferences, 12);
 
   const aiResult = await getAIRecommendations(preferences, baseResults);
 
-  const finalResults = sanitizeFinalResults(
-    aiResult.recommendations,
-    preferences,
-    preferences.contentType === "both" ? 8 : 6
+  const finalResults = limitByContentType(
+    sanitizeFinalResults(aiResult.recommendations, preferences, 12),
+    preferences
+  );
+
+  const fallbackResults = limitByContentType(
+    sanitizeFinalResults(baseResults, preferences, 12),
+    preferences
   );
 
   return {
     source: aiResult.source,
     message: aiResult.message,
-    recommendations:
-      finalResults.length > 0
-        ? finalResults
-        : sanitizeFinalResults(baseResults, preferences, preferences.contentType === "both" ? 8 : 6),
+    recommendations: finalResults.length > 0 ? finalResults : fallbackResults,
   };
 }

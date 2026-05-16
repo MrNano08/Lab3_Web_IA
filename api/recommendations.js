@@ -4,30 +4,30 @@ function getRecentRule(preferences) {
   }
 
   if (preferences.contentType === "movies") {
-    return "Todas las películas deben ser del año 2024 o posteriores.";
+    return "La película debe ser del año 2024 o posterior.";
   }
 
   if (preferences.contentType === "books") {
-    return "Todos los libros deben ser del año 2020 o posteriores.";
+    return "El libro debe ser del año 2020 o posterior.";
   }
 
-  return "Las películas deben ser del año 2024 o posteriores. Los libros deben ser del año 2020 o posteriores.";
+  return "La película debe ser del año 2024 o posterior. El libro debe ser del año 2020 o posterior.";
 }
 
 function getContentRule(preferences) {
   if (preferences.contentType === "movies") {
-    return "Devuelve únicamente películas. No incluyas libros.";
+    return "Devuelve exactamente 1 recomendación y debe ser una película.";
   }
 
   if (preferences.contentType === "books") {
-    return "Devuelve únicamente libros. No incluyas películas.";
+    return "Devuelve exactamente 1 recomendación y debe ser un libro.";
   }
 
-  return "Puedes devolver películas y libros.";
+  return "Devuelve exactamente 2 recomendaciones: 1 película y 1 libro.";
 }
 
 function compactBaseResults(baseResults) {
-  return baseResults.slice(0, 6).map((item) => ({
+  return baseResults.slice(0, 8).map((item) => ({
     id: item.id,
     type: item.type,
     title: item.title,
@@ -51,17 +51,18 @@ ${JSON.stringify(preferences)}
 Resultados base disponibles:
 ${JSON.stringify(compactResults)}
 
-Reglas:
+Reglas obligatorias:
 - ${getContentRule(preferences)}
 - ${getRecentRule(preferences)}
-- Respeta el género, autor, director, actor o palabra clave si existen.
+- Respeta el género solicitado.
+- Respeta autor, director, actor o palabra clave si existe.
 - Usa preferiblemente resultados base.
 - Conserva imageUrl cuando exista.
 - No inventes imageUrl.
-- Devuelve entre 3 y 6 recomendaciones.
-- Cada reason debe ser breve: máximo 22 palabras.
-- Cada description debe ser breve: máximo 22 palabras.
-- Devuelve solo JSON válido.
+- La descripción debe tener máximo 20 palabras.
+- La razón debe tener máximo 20 palabras.
+- Devuelve únicamente JSON válido.
+- No agregues texto fuera del JSON.
 `;
 }
 
@@ -120,11 +121,10 @@ function extractJson(text) {
     const lastBrace = cleaned.lastIndexOf("}");
 
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-      const possibleJson = cleaned.slice(firstBrace, lastBrace + 1);
-      return JSON.parse(possibleJson);
+      return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
     }
 
-    throw new Error("No se pudo extraer JSON válido de la respuesta de Gemini.");
+    throw new Error("No se pudo extraer JSON válido de Gemini.");
   }
 }
 
@@ -212,6 +212,21 @@ function filterByPreferences(recommendations, preferences) {
   });
 }
 
+function limitByContentType(recommendations, preferences) {
+  if (preferences.contentType === "movies") {
+    return recommendations.filter((item) => item.type === "movie").slice(0, 1);
+  }
+
+  if (preferences.contentType === "books") {
+    return recommendations.filter((item) => item.type === "book").slice(0, 1);
+  }
+
+  const movie = recommendations.find((item) => item.type === "movie");
+  const book = recommendations.find((item) => item.type === "book");
+
+  return [movie, book].filter(Boolean);
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -261,8 +276,8 @@ export default async function handler(req, res) {
             },
           ],
           generationConfig: {
-            temperature: 0.15,
-            maxOutputTokens: 900,
+            temperature: 0.1,
+            maxOutputTokens: 450,
             responseMimeType: "application/json",
             responseSchema,
           },
@@ -327,10 +342,10 @@ export default async function handler(req, res) {
           .filter(isValidRecommendation)
       : [];
 
-    const filteredRecommendations = filterByPreferences(
-      recommendations,
+    const filteredRecommendations = limitByContentType(
+      filterByPreferences(recommendations, preferences),
       preferences
-    ).slice(0, preferences.contentType === "both" ? 8 : 6);
+    );
 
     if (filteredRecommendations.length === 0) {
       return res.status(200).json({
