@@ -38,13 +38,20 @@ export function PreferenceForm({ onSubmit, isLoading }: PreferenceFormProps) {
   return (
     <section className="preference-card">
       <div className="form-header">
-        <span className="eyebrow">Recomendador IA</span>
-        <h1>Encuentra películas y libros</h1>
-        <p>
-          Selecciona pocos filtros y el sistema intentará generar recomendaciones
-          usando inteligencia artificial.
-        </p>
-      </div>
+  <img
+    src="/logo.png"
+    alt="Logo de Kino"
+    className="header-logo"
+  />
+
+
+  <h2>Encuentra películas y libros</h2>
+
+  <p>
+    Selecciona pocos filtros y el sistema intentará generar recomendaciones
+    usando inteligencia artificial.
+  </p>
+</div>
 
       <form className="form-grid" onSubmit={handleSubmit}>
         <label>
