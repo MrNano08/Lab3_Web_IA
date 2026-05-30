@@ -39,7 +39,7 @@ export function PreferenceForm({ onSubmit, isLoading }: PreferenceFormProps) {
     <section className="preference-card">
       <div className="form-header">
   <img
-    src="/logo.png"
+    src="https://i.ibb.co/rfNZLChP/logo.png"
     alt="Logo de Kino"
     className="header-logo"
   />
